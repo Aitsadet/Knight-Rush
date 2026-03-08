@@ -4,6 +4,8 @@ using UnityEngine.UI;
 
 public class Swordman : PlayerController
 {
+    private Vector2 respawnPosition; // ตัวแปรเก็บตำแหน่งจุดเกิด
+
     [Header("Health System")]
     public int maxHP = 100;
     public int currentHP;
@@ -30,6 +32,9 @@ public class Swordman : PlayerController
 
     void Start()
     {
+        // บันทึกจุดเกิดเริ่มต้นตอนเพิ่งเปิดฉาก
+        respawnPosition = transform.position;
+
         m_CapsulleCollider = GetComponent<CapsuleCollider2D>();
         m_rigidbody = GetComponent<Rigidbody2D>();
 
@@ -213,7 +218,7 @@ public class Swordman : PlayerController
     }
 
     // =====================
-    // PLAYER DIE
+    // PLAYER DIE & RESPAWN
     // =====================
 
     void Die()
@@ -233,12 +238,45 @@ public class Swordman : PlayerController
 
     IEnumerator GameOverRoutine()
     {
-        yield return new WaitForSeconds(1.2f);
+        yield return new WaitForSeconds(1.2f); // รอให้แอนิเมชันตายเล่นให้จบ
 
-        Time.timeScale = 0f;
+        Time.timeScale = 0f; // หยุดเวลาเกม
 
         if (gameOverPanel != null)
-            gameOverPanel.SetActive(true);
+            gameOverPanel.SetActive(true); // เปิดหน้าจอ Game Over
+    }
+
+    // ฟังก์ชันสำหรับอัปเดตจุดเกิดเมื่อเดินผ่าน Checkpoint
+    public void UpdateRespawnPosition(Vector2 newPosition)
+    {
+        respawnPosition = newPosition;
+    }
+
+    // ฟังก์ชันนี้ไว้ใช้ผูกกับปุ่ม "เริ่มใหม่ (Retry)" ในหน้า Game Over Panel ของคุณ
+    public void RespawnPlayer()
+    {
+        Time.timeScale = 1f; // ให้เวลาเดินปกติอีกครั้ง
+        isDead = false;
+
+        currentHP = maxHP; // รีเซ็ตเลือดให้เต็ม
+        UpdateHPBar(); // อัปเดตหลอดเลือด
+
+        // ย้ายตำแหน่งตัวละครกลับไปที่จุด Checkpoint
+        transform.position = respawnPosition;
+        m_rigidbody.linearVelocity = Vector2.zero; // รีเซ็ตแรงเหวี่ยง
+        isKnockback = false;
+
+        // สั่งให้กลับไปเล่นแอนิเมชันยืนนิ่ง
+        if (m_Anim != null)
+            m_Anim.Play("Idle");
+
+        // เปิด UI ควบคุมกลับมา
+        if (controlUI != null)
+            controlUI.SetActive(true);
+
+        // ปิดหน้าจอ Game Over
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
     }
 
     // =====================
@@ -249,5 +287,6 @@ public class Swordman : PlayerController
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
-    }
-}
+    } // ตรงนี้คือบรรทัดที่ 290 ของคุณ
+
+} // <--- เพิ่มปีกกาตัวนี้เข้าไปที่บรรทัดล่างสุดเลยครับ
