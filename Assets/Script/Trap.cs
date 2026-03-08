@@ -20,7 +20,7 @@ public class Trap : MonoBehaviour
             if (playerScript != null)
             {
                 // 4. สั่งเรียกฟังก์ชันลดเลือด (TakeDamage) ที่เราเขียนไว้!
-                playerScript.TakeDamage(damageAmount);
+                playerScript.TakeDamage(damageAmount, Vector2.zero);
 
                 // (แถม) แสดงข้อความเตือนใน Console ว่าโดนหนามแทง
                 Debug.Log("โดนหนามทิ่ม! เลือดลด: " + damageAmount);

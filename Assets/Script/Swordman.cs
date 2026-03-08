@@ -1,7 +1,6 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; // **อย่าลืมบรรทัดนี้ ต้องมีเพื่อใช้งาน UI**
+using UnityEngine.UI;
 
 public class Swordman : PlayerController
 {
@@ -10,45 +9,54 @@ public class Swordman : PlayerController
     public int currentHP;
     public bool isDead = false;
 
-    [Header("UI System")]
-    public Image hpBarFill; // ตัวแปรรับรูปหลอดเลือดสีแดง/เขียว ที่เราสร้างไว้
+    [Header("UI")]
+    public Image hpBarFill;
+    public GameObject gameOverPanel;
+    public GameObject controlUI;
 
-    private void Start()
+    [Header("Attack")]
+    public float attackCooldown = 0.5f;
+    float lastAttackTime;
+
+    public int attackDamage = 20;
+    public float attackRange = 1.2f;
+    public float attackHitCooldown = 0.4f;
+    float lastHitTime;
+
+    [Header("Knockback")]
+    public float knockbackDuration = 0.25f;
+
+    bool isKnockback = false;
+
+    void Start()
     {
         m_CapsulleCollider = GetComponent<CapsuleCollider2D>();
         m_rigidbody = GetComponent<Rigidbody2D>();
 
-        // ตั้งค่าเลือดเริ่มต้นให้เต็ม
         currentHP = maxHP;
-        UpdateHPBar(); // อัปเดตหลอดเลือดตอนเริ่มเกม
+        UpdateHPBar();
 
-        // ป้องกัน error ถ้าไม่มี model
         Transform model = transform.Find("model");
         if (model != null)
             m_Anim = model.GetComponent<Animator>();
     }
 
-    private void Update()
+    void Update()
     {
         if (isDead) return;
 
         checkInput();
-
-        // จำกัดความเร็ว
-        if (m_rigidbody.linearVelocity.magnitude > 30)
-        {
-            m_rigidbody.linearVelocity =
-                new Vector2(
-                    m_rigidbody.linearVelocity.x - 0.1f,
-                    m_rigidbody.linearVelocity.y - 0.1f
-                );
-        }
     }
 
     public void checkInput()
     {
         if (m_Anim == null) return;
 
+        m_MoveX = Input.GetAxis("Horizontal");
+
+        GroundCheckUpdate();
+
+        // นั่ง
         if (Input.GetKeyDown(KeyCode.S))
         {
             IsSit = true;
@@ -60,63 +68,27 @@ public class Swordman : PlayerController
             IsSit = false;
         }
 
-        if (m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Sit") ||
-            m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Die"))
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                if (currentJumpCount < JumpCount)
-                    DownJump();
-            }
-            return;
-        }
-
-        m_MoveX = Input.GetAxis("Horizontal");
-
-        GroundCheckUpdate();
-
+        // โจมตี + cooldown
         if (!m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
         {
             if (Input.GetKey(KeyCode.Mouse0))
             {
-                m_Anim.Play("Attack");
+                if (Time.time - lastAttackTime >= attackCooldown)
+                {
+                    lastAttackTime = Time.time;
+                    m_Anim.Play("Attack");
+                }
             }
             else
             {
-                if (m_MoveX == 0)
-                {
-                    if (!OnceJumpRayCheck)
-                        m_Anim.Play("Idle");
-                }
-                else
-                {
+                if (Mathf.Abs(m_MoveX) > 0.1f)
                     m_Anim.Play("Run");
-                }
+                else
+                    m_Anim.Play("Idle");
             }
         }
 
-        // กดปุ่ม 1 เพื่อจำลองการโดนโจมตี (ลดเลือดทีละ 20)
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            TakeDamage(20);
-        }
-
-        if (Input.GetKey(KeyCode.D))
-        {
-            MoveCharacter();
-
-            if (!Input.GetKey(KeyCode.A))
-                Filp(false);
-        }
-
-        else if (Input.GetKey(KeyCode.A))
-        {
-            MoveCharacter();
-
-            if (!Input.GetKey(KeyCode.D))
-                Filp(true);
-        }
-
+        // กระโดด
         if (Input.GetKeyDown(KeyCode.Space))
         {
             if (m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
@@ -130,21 +102,23 @@ public class Swordman : PlayerController
                     DownJump();
             }
         }
+
+        MoveCharacter();
     }
 
     void MoveCharacter()
     {
-        if (isGrounded)
-        {
-            if (m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
-                return;
+        if (isKnockback) return;
 
-            transform.Translate(Vector2.right * m_MoveX * MoveSpeed * Time.deltaTime);
-        }
-        else
-        {
-            transform.Translate(new Vector3(m_MoveX * MoveSpeed * Time.deltaTime, 0, 0));
-        }
+        float move = m_MoveX * MoveSpeed;
+
+        m_rigidbody.linearVelocity =
+            new Vector2(move, m_rigidbody.linearVelocity.y);
+
+        if (m_MoveX > 0)
+            Filp(false);
+        else if (m_MoveX < 0)
+            Filp(true);
     }
 
     protected override void LandingEvent()
@@ -159,19 +133,56 @@ public class Swordman : PlayerController
         }
     }
 
-    // ==========================================
-    // ฟังก์ชันจัดการ HP และความเสียหาย
-    // ==========================================
+    // =====================
+    // ATTACK HITBOX
+    // =====================
 
-    public void TakeDamage(int damageAmount)
+    public void HitEnemy()
+    {
+        if (Time.time - lastHitTime < attackHitCooldown)
+            return;
+
+        lastHitTime = Time.time;
+
+        Collider2D[] enemies =
+            Physics2D.OverlapCircleAll(transform.position, attackRange);
+
+        foreach (Collider2D col in enemies)
+        {
+            if (col.CompareTag("Enemy"))
+            {
+                EnemyController enemy =
+                    col.GetComponent<EnemyController>();
+
+                if (enemy != null)
+                {
+                    float dir =
+                        Mathf.Sign(col.transform.position.x - transform.position.x);
+
+                    Vector2 knockback =
+                        new Vector2(dir * 4f, 2f);
+
+                    enemy.TakeDamage(attackDamage, knockback);
+                }
+            }
+        }
+    }
+
+    // =====================
+    // DAMAGE SYSTEM
+    // =====================
+
+    public void TakeDamage(int damageAmount, Vector2 knockback)
     {
         if (isDead) return;
 
         currentHP -= damageAmount;
-        Debug.Log("Player โดนโจมตี! เลือดเหลือ: " + currentHP);
 
-        // อัปเดตหลอดเลือดบนหน้าจอ
+        Debug.Log("Player HP: " + currentHP);
+
         UpdateHPBar();
+
+        StartCoroutine(Knockback(knockback));
 
         if (currentHP <= 0)
         {
@@ -180,21 +191,63 @@ public class Swordman : PlayerController
         }
     }
 
-    // ฟังก์ชันคำนวณและลดหลอดเลือด UI
-    private void UpdateHPBar()
+    IEnumerator Knockback(Vector2 force)
+    {
+        isKnockback = true;
+
+        m_rigidbody.linearVelocity = Vector2.zero;
+
+        m_rigidbody.AddForce(force, ForceMode2D.Impulse);
+
+        yield return new WaitForSeconds(knockbackDuration);
+
+        isKnockback = false;
+    }
+
+    void UpdateHPBar()
     {
         if (hpBarFill != null)
         {
-            // สูตรคำนวณเปอร์เซ็นต์เลือด (0.0 ถึง 1.0)
             hpBarFill.fillAmount = (float)currentHP / maxHP;
         }
     }
 
-    private void Die()
+    // =====================
+    // PLAYER DIE
+    // =====================
+
+    void Die()
     {
         isDead = true;
-        m_Anim.Play("Die");
+
         m_rigidbody.linearVelocity = Vector2.zero;
-        Debug.Log("Player ตายแล้ว!");
+
+        if (m_Anim != null)
+            m_Anim.SetTrigger("die");
+
+        if (controlUI != null)
+            controlUI.SetActive(false);
+
+        StartCoroutine(GameOverRoutine());
+    }
+
+    IEnumerator GameOverRoutine()
+    {
+        yield return new WaitForSeconds(1.2f);
+
+        Time.timeScale = 0f;
+
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(true);
+    }
+
+    // =====================
+    // DEBUG HIT RANGE
+    // =====================
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }
