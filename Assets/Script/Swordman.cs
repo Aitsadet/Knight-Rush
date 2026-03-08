@@ -1,13 +1,26 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI; // **อย่าลืมบรรทัดนี้ ต้องมีเพื่อใช้งาน UI**
 
 public class Swordman : PlayerController
 {
+    [Header("Health System")]
+    public int maxHP = 100;
+    public int currentHP;
+    public bool isDead = false;
+
+    [Header("UI System")]
+    public Image hpBarFill; // ตัวแปรรับรูปหลอดเลือดสีแดง/เขียว ที่เราสร้างไว้
+
     private void Start()
     {
         m_CapsulleCollider = GetComponent<CapsuleCollider2D>();
         m_rigidbody = GetComponent<Rigidbody2D>();
+
+        // ตั้งค่าเลือดเริ่มต้นให้เต็ม
+        currentHP = maxHP;
+        UpdateHPBar(); // อัปเดตหลอดเลือดตอนเริ่มเกม
 
         // ป้องกัน error ถ้าไม่มี model
         Transform model = transform.Find("model");
@@ -17,6 +30,8 @@ public class Swordman : PlayerController
 
     private void Update()
     {
+        if (isDead) return;
+
         checkInput();
 
         // จำกัดความเร็ว
@@ -80,10 +95,12 @@ public class Swordman : PlayerController
             }
         }
 
-        if (Input.GetKey(KeyCode.Alpha1))
-            m_Anim.Play("Die");
+        // กดปุ่ม 1 เพื่อจำลองการโดนโจมตี (ลดเลือดทีละ 20)
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            TakeDamage(20);
+        }
 
-        // เดินขวา
         if (Input.GetKey(KeyCode.D))
         {
             MoveCharacter();
@@ -92,7 +109,6 @@ public class Swordman : PlayerController
                 Filp(false);
         }
 
-        // เดินซ้าย
         else if (Input.GetKey(KeyCode.A))
         {
             MoveCharacter();
@@ -136,9 +152,49 @@ public class Swordman : PlayerController
         base.LandingEvent();
 
         if (!m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Run") &&
-            !m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
+            !m_Anim.GetCurrentAnimatorStateInfo(0).IsName("Attack") &&
+            !isDead)
         {
             m_Anim.Play("Idle");
         }
+    }
+
+    // ==========================================
+    // ฟังก์ชันจัดการ HP และความเสียหาย
+    // ==========================================
+
+    public void TakeDamage(int damageAmount)
+    {
+        if (isDead) return;
+
+        currentHP -= damageAmount;
+        Debug.Log("Player โดนโจมตี! เลือดเหลือ: " + currentHP);
+
+        // อัปเดตหลอดเลือดบนหน้าจอ
+        UpdateHPBar();
+
+        if (currentHP <= 0)
+        {
+            currentHP = 0;
+            Die();
+        }
+    }
+
+    // ฟังก์ชันคำนวณและลดหลอดเลือด UI
+    private void UpdateHPBar()
+    {
+        if (hpBarFill != null)
+        {
+            // สูตรคำนวณเปอร์เซ็นต์เลือด (0.0 ถึง 1.0)
+            hpBarFill.fillAmount = (float)currentHP / maxHP;
+        }
+    }
+
+    private void Die()
+    {
+        isDead = true;
+        m_Anim.Play("Die");
+        m_rigidbody.linearVelocity = Vector2.zero;
+        Debug.Log("Player ตายแล้ว!");
     }
 }
