@@ -173,6 +173,20 @@ public class Swordman : PlayerController
         }
     }
 
+    public void Heal(int amount)
+    {
+        if (isDead) return;
+
+        currentHP += amount;
+
+        if (currentHP > maxHP)
+            currentHP = maxHP;
+
+        UpdateHPBar();
+
+        Debug.Log("Heal +" + amount + " | HP: " + currentHP);
+    }
+
     // =====================
     // DAMAGE SYSTEM
     // =====================
