@@ -156,10 +156,10 @@ public class PlayerController : MonoBehaviour
                     LandingEvent();
                     OnceJumpRayCheck = false;
                 }
-                else
-                {
-                    Debug.Log("ยังไม่ชนพื้น");
-                }
+                //else
+                //{
+                    //Debug.Log("ยังไม่ชนพื้น");
+                //}
             }
 
             PretmpY = transform.position.y;
