@@ -1,3 +1,4 @@
+using Unity.Services.Analytics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -19,8 +20,9 @@ public class MenuManager : MonoBehaviour
     // ฟังก์ชันสำหรับปุ่ม PLAY
     public void StartGame()
     {
-        Time.timeScale = 1f; // ทำให้แน่ใจว่าเวลาเดินปกติ
-        SceneManager.LoadScene("Level 1"); // โหลดหน้า Level 1 (พิมพ์ชื่อให้ตรงเป๊ะ)
+        AnalyticsManager.Instance.SendEvent("game_start");
+
+        SceneManager.LoadScene("Level 1");
     }
 
     // ฟังก์ชันสำหรับปุ่ม QUIT
