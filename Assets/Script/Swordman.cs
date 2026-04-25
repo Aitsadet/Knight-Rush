@@ -60,7 +60,19 @@ public class Swordman : PlayerController
         m_MoveX = Input.GetAxis("Horizontal");
 
         GroundCheckUpdate();
+        // ==========================================
+        // 🌟 เพิ่มโค้ด Analytics: นับจำนวนการคลิกเมาส์
+        // ==========================================
+        if (Input.GetMouseButtonDown(0)) // กดคลิกซ้าย
+        {
+            AnalyticsManager.Instance.SendEvent("click_left");
+        }
 
+        if (Input.GetMouseButtonDown(1)) // กดคลิกขวา
+        {
+            AnalyticsManager.Instance.SendEvent("click_right");
+        }
+        // ==========================================
         // นั่ง
         if (Input.GetKeyDown(KeyCode.S))
         {

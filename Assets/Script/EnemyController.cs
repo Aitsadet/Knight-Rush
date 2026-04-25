@@ -133,6 +133,12 @@ public class EnemyController : MonoBehaviour
                 new Vector2(dir * knockbackForce, knockbackUp);
 
             playerScript.TakeDamage(damage, knockback);
+
+            // ==========================================
+            // 🌟 เพิ่มโค้ด Analytics: ส่งข้อมูลตอนผู้เล่นเสียเลือดให้ศัตรู
+            // ==========================================
+            AnalyticsManager.Instance.SendEvent("damage_enemy");
+            // ==========================================
         }
     }
 

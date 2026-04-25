@@ -21,7 +21,7 @@ public class Trap : MonoBehaviour
             {
                 // 4. สั่งเรียกฟังก์ชันลดเลือด (TakeDamage) ที่เราเขียนไว้!
                 playerScript.TakeDamage(damageAmount, Vector2.zero);
-
+                AnalyticsManager.Instance.SendEvent("damage_trap");
                 // (แถม) แสดงข้อความเตือนใน Console ว่าโดนหนามแทง
                 Debug.Log("โดนหนามทิ่ม! เลือดลด: " + damageAmount);
             }
