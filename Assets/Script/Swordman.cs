@@ -43,7 +43,9 @@ public class Swordman : PlayerController
 
         Transform model = transform.Find("model");
         if (model != null)
+        {
             m_Anim = model.GetComponent<Animator>();
+        }
     }
 
     void Update()
@@ -60,19 +62,35 @@ public class Swordman : PlayerController
         m_MoveX = Input.GetAxis("Horizontal");
 
         GroundCheckUpdate();
+
         // ==========================================
-        // 🌟 เพิ่มโค้ด Analytics: นับจำนวนการคลิกเมาส์
-        // ==========================================
-        if (Input.GetMouseButtonDown(0)) // กดคลิกซ้าย
-        {
-            AnalyticsManager.Instance.SendEvent("click_left");
+        // Analytics: นับจำนวนการคลิกเมาส์
+        // click_left / click_right
+        // ==========================================
+        if (Input.GetMouseButtonDown(0)) // คลิกซ้าย
+        {
+            if (AnalyticsManager.Instance != null)
+            {
+                AnalyticsManager.Instance.SendClickLeft();
+            }
+            else
+            {
+                Debug.LogWarning("❌ ไม่เจอ AnalyticsManager ตอนกดคลิกซ้าย");
+            }
         }
 
-        if (Input.GetMouseButtonDown(1)) // กดคลิกขวา
-        {
-            AnalyticsManager.Instance.SendEvent("click_right");
+        if (Input.GetMouseButtonDown(1)) // คลิกขวา
+        {
+            if (AnalyticsManager.Instance != null)
+            {
+                AnalyticsManager.Instance.SendClickRight();
+            }
+            else
+            {
+                Debug.LogWarning("❌ ไม่เจอ AnalyticsManager ตอนกดคลิกขวา");
+            }
         }
-        // ==========================================
+
         // นั่ง
         if (Input.GetKeyDown(KeyCode.S))
         {
@@ -99,9 +117,13 @@ public class Swordman : PlayerController
             else
             {
                 if (Mathf.Abs(m_MoveX) > 0.1f)
+                {
                     m_Anim.Play("Run");
+                }
                 else
+                {
                     m_Anim.Play("Idle");
+                }
             }
         }
 
@@ -114,9 +136,13 @@ public class Swordman : PlayerController
             if (currentJumpCount < JumpCount)
             {
                 if (!IsSit)
+                {
                     prefromJump();
+                }
                 else
+                {
                     DownJump();
+                }
             }
         }
 
@@ -133,9 +159,13 @@ public class Swordman : PlayerController
             new Vector2(move, m_rigidbody.linearVelocity.y);
 
         if (m_MoveX > 0)
+        {
             Filp(false);
+        }
         else if (m_MoveX < 0)
+        {
             Filp(true);
+        }
     }
 
     protected override void LandingEvent()
@@ -168,8 +198,7 @@ public class Swordman : PlayerController
         {
             if (col.CompareTag("Enemy"))
             {
-                EnemyController enemy =
-                    col.GetComponent<EnemyController>();
+                EnemyController enemy = col.GetComponent<EnemyController>();
 
                 if (enemy != null)
                 {
@@ -185,18 +214,26 @@ public class Swordman : PlayerController
         }
     }
 
+    // =====================
+    // HEAL SYSTEM
+    // =====================
+
     public void Heal(int amount)
     {
         if (isDead) return;
 
+        int beforeHP = currentHP;
+
         currentHP += amount;
 
         if (currentHP > maxHP)
+        {
             currentHP = maxHP;
+        }
 
         UpdateHPBar();
 
-        Debug.Log("Heal +" + amount + " | HP: " + currentHP);
+        Debug.Log("❤️ Heal +" + amount + " | HP: " + beforeHP + " → " + currentHP + "/" + maxHP);
     }
 
     // =====================
@@ -207,9 +244,16 @@ public class Swordman : PlayerController
     {
         if (isDead) return;
 
+        int beforeHP = currentHP;
+
         currentHP -= damageAmount;
 
-        Debug.Log("Player HP: " + currentHP);
+        if (currentHP < 0)
+        {
+            currentHP = 0;
+        }
+
+        Debug.Log("💔 Player HP: " + beforeHP + " → " + currentHP);
 
         UpdateHPBar();
 
@@ -217,7 +261,6 @@ public class Swordman : PlayerController
 
         if (currentHP <= 0)
         {
-            currentHP = 0;
             Die();
         }
     }
@@ -241,6 +284,10 @@ public class Swordman : PlayerController
         {
             hpBarFill.fillAmount = (float)currentHP / maxHP;
         }
+        else
+        {
+            Debug.LogWarning("❌ ยังไม่ได้ลาก hpBarFill ใส่ใน Inspector");
+        }
     }
 
     // =====================
@@ -254,22 +301,28 @@ public class Swordman : PlayerController
         m_rigidbody.linearVelocity = Vector2.zero;
 
         if (m_Anim != null)
+        {
             m_Anim.SetTrigger("die");
+        }
 
         if (controlUI != null)
+        {
             controlUI.SetActive(false);
+        }
 
         StartCoroutine(GameOverRoutine());
     }
 
     IEnumerator GameOverRoutine()
     {
-        yield return new WaitForSeconds(1.2f); // รอให้แอนิเมชันตายเล่นให้จบ
+        yield return new WaitForSeconds(1.2f);
 
-        Time.timeScale = 0f; // หยุดเวลาเกม
+        Time.timeScale = 0f;
 
         if (gameOverPanel != null)
-            gameOverPanel.SetActive(true); // เปิดหน้าจอ Game Over
+        {
+            gameOverPanel.SetActive(true);
+        }
     }
 
     // ฟังก์ชันสำหรับอัปเดตจุดเกิดเมื่อเดินผ่าน Checkpoint
@@ -278,31 +331,33 @@ public class Swordman : PlayerController
         respawnPosition = newPosition;
     }
 
-    // ฟังก์ชันนี้ไว้ใช้ผูกกับปุ่ม "เริ่มใหม่ (Retry)" ในหน้า Game Over Panel ของคุณ
+    // ฟังก์ชันนี้ไว้ใช้ผูกกับปุ่ม Retry ในหน้า Game Over
     public void RespawnPlayer()
     {
-        Time.timeScale = 1f; // ให้เวลาเดินปกติอีกครั้ง
+        Time.timeScale = 1f;
         isDead = false;
 
-        currentHP = maxHP; // รีเซ็ตเลือดให้เต็ม
-        UpdateHPBar(); // อัปเดตหลอดเลือด
+        currentHP = maxHP;
+        UpdateHPBar();
 
-        // ย้ายตำแหน่งตัวละครกลับไปที่จุด Checkpoint
         transform.position = respawnPosition;
-        m_rigidbody.linearVelocity = Vector2.zero; // รีเซ็ตแรงเหวี่ยง
+        m_rigidbody.linearVelocity = Vector2.zero;
         isKnockback = false;
 
-        // สั่งให้กลับไปเล่นแอนิเมชันยืนนิ่ง
         if (m_Anim != null)
+        {
             m_Anim.Play("Idle");
+        }
 
-        // เปิด UI ควบคุมกลับมา
         if (controlUI != null)
+        {
             controlUI.SetActive(true);
+        }
 
-        // ปิดหน้าจอ Game Over
         if (gameOverPanel != null)
+        {
             gameOverPanel.SetActive(false);
+        }
     }
 
     // =====================
@@ -313,6 +368,5 @@ public class Swordman : PlayerController
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
-    } // ตรงนี้คือบรรทัดที่ 290 ของคุณ
-
-} // <--- เพิ่มปีกกาตัวนี้เข้าไปที่บรรทัดล่างสุดเลยครับ
+    }
+}

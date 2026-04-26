@@ -8,7 +8,6 @@ public class AnalyticsManager : MonoBehaviour
     public static AnalyticsManager Instance;
 
     private bool isInitialized = false;
-    private int eventCount = 0;
 
     private async void Awake()
     {
@@ -19,7 +18,7 @@ public class AnalyticsManager : MonoBehaviour
 
             await UnityServices.InitializeAsync();
 
-            // ใช้แบบเดิมได้ ถึงจะมี Warning สีเหลือง แต่ไม่ใช่ Error
+            // อันนี้อาจขึ้น Warning สีเหลือง แต่ยังใช้ได้ ไม่ใช่ Error
             AnalyticsService.Instance.StartDataCollection();
 
             isInitialized = true;
@@ -34,7 +33,12 @@ public class AnalyticsManager : MonoBehaviour
         }
     }
 
-    // ส่ง Event game_start พร้อม Parameter level
+    // =========================
+    // GAME START
+    // Event Name: game_start
+    // Parameter: level
+    // Type: STRING
+    // =========================
     public void SendGameStart(string level)
     {
         if (!isInitialized)
@@ -51,12 +55,15 @@ public class AnalyticsManager : MonoBehaviour
         AnalyticsService.Instance.RecordEvent(gameStartEvent);
         AnalyticsService.Instance.Flush();
 
-        eventCount++;
-
         Debug.Log("🎮 Sent game_start level = " + level);
     }
 
-    // ส่ง Event collect_potion พร้อม Parameter amount = 1
+    // =========================
+    // COLLECT POTION
+    // Event Name: collect_potion
+    // Parameter: amount
+    // Type: INTEGER
+    // =========================
     public void SendCollectPotion(int amount)
     {
         if (!isInitialized)
@@ -73,12 +80,80 @@ public class AnalyticsManager : MonoBehaviour
         AnalyticsService.Instance.RecordEvent(collectPotionEvent);
         AnalyticsService.Instance.Flush();
 
-        eventCount++;
-
         Debug.Log("🧪 Sent collect_potion amount = " + amount);
     }
 
+    // =========================
+    // CLICK LEFT
+    // Event Name: click_left
+    // ไม่มี Parameter
+    // =========================
+    public void SendClickLeft()
+    {
+        if (!isInitialized)
+        {
+            Debug.LogWarning("❌ Analytics ยังไม่พร้อม");
+            return;
+        }
+
+        CustomEvent clickLeftEvent = new CustomEvent("click_left");
+
+        AnalyticsService.Instance.RecordEvent(clickLeftEvent);
+        AnalyticsService.Instance.Flush();
+
+        Debug.Log("🖱️ Sent click_left");
+    }
+
+    // =========================
+    // CLICK RIGHT
+    // Event Name: click_right
+    // ไม่มี Parameter
+    // =========================
+    public void SendClickRight()
+    {
+        if (!isInitialized)
+        {
+            Debug.LogWarning("❌ Analytics ยังไม่พร้อม");
+            return;
+        }
+
+        CustomEvent clickRightEvent = new CustomEvent("click_right");
+
+        AnalyticsService.Instance.RecordEvent(clickRightEvent);
+        AnalyticsService.Instance.Flush();
+
+        Debug.Log("🖱️ Sent click_right");
+    }
+
+    // =========================
+    // DAMAGE TRAP
+    // Event Name: damage_trap
+    // Parameter: damage
+    // Type: INTEGER
+    // =========================
+    public void SendDamageTrap(int damage)
+    {
+        if (!isInitialized)
+        {
+            Debug.LogWarning("❌ Analytics ยังไม่พร้อม");
+            return;
+        }
+
+        CustomEvent damageTrapEvent = new CustomEvent("damage_trap")
+        {
+            { "damage", damage }
+        };
+
+        AnalyticsService.Instance.RecordEvent(damageTrapEvent);
+        AnalyticsService.Instance.Flush();
+
+        Debug.Log("💥 Sent damage_trap damage = " + damage);
+    }
+
+    // =========================
     // ส่ง Event ธรรมดา ไม่มี Parameter
+    // ใช้เฉพาะ Event ที่สร้างใน Dashboard แล้ว
+    // =========================
     public void SendEvent(string eventName)
     {
         if (!isInitialized)
@@ -91,8 +166,6 @@ public class AnalyticsManager : MonoBehaviour
 
         AnalyticsService.Instance.RecordEvent(customEvent);
         AnalyticsService.Instance.Flush();
-
-        eventCount++;
 
         Debug.Log("📩 Sent Event : " + eventName);
     }
