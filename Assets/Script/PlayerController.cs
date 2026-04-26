@@ -20,11 +20,17 @@ public class PlayerController : MonoBehaviour
     public int JumpCount = 2;
     public float jumpForce = 15f;
 
+    [Header("[Health]")]
+    public int maxHealth = 100;
+    public int currentHealth = 100;
+
     void Start()
     {
         m_rigidbody = GetComponent<Rigidbody2D>();
         m_CapsulleCollider = GetComponent<CapsuleCollider2D>();
         m_Anim = GetComponent<Animator>();
+
+        currentHealth = maxHealth;
     }
 
     void Update()
@@ -156,23 +162,66 @@ public class PlayerController : MonoBehaviour
                     LandingEvent();
                     OnceJumpRayCheck = false;
                 }
-                //else
-                //{
-                    //Debug.Log("ยังไม่ชนพื้น");
-                //}
             }
 
             PretmpY = transform.position.y;
         }
     }
 
-    // 🔴 ตรงนี้คือจุดสำคัญที่แก้
     protected virtual void LandingEvent()
     {
         currentJumpCount = 0;
 
         if (m_Anim != null)
             m_Anim.Play("Idle");
+    }
+
+    public void Heal(int amount)
+    {
+        if (currentHealth <= 0)
+        {
+            Debug.Log("❌ Player ตายแล้ว เพิ่มเลือดไม่ได้");
+            return;
+        }
+
+        currentHealth += amount;
+
+        if (currentHealth > maxHealth)
+        {
+            currentHealth = maxHealth;
+        }
+
+        Debug.Log("❤️ Heal +" + amount + " | HP = " + currentHealth + "/" + maxHealth);
+    }
+
+    public void TakeDamage(int amount)
+    {
+        if (currentHealth <= 0) return;
+
+        currentHealth -= amount;
+
+        if (currentHealth < 0)
+        {
+            currentHealth = 0;
+        }
+
+        Debug.Log("💔 Damage -" + amount + " | HP = " + currentHealth + "/" + maxHealth);
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log("💀 Player Dead");
+
+        if (m_Anim != null)
+            m_Anim.Play("Die");
+
+        m_rigidbody.linearVelocity = Vector2.zero;
+        enabled = false;
     }
 
     void OnCollisionEnter2D(Collision2D collision)

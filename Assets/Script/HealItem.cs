@@ -8,11 +8,24 @@ public class HealItem : MonoBehaviour
     {
         if (!collision.CompareTag("Player")) return;
 
-        PlayerController player = collision.GetComponent<PlayerController>();
+        Swordman player = collision.GetComponent<Swordman>();
 
-        if (player == null) return;
+        if (player == null)
+        {
+            Debug.LogWarning("❌ เจอ Player แต่ไม่มี Swordman Script");
+            return;
+        }
 
-        // ส่ง Analytics: collect_potion พร้อม amount = 1
+        if (player.isDead)
+        {
+            Debug.LogWarning("❌ Player ตายแล้ว เก็บเลือดไม่ได้");
+            return;
+        }
+
+        // เพิ่มเลือดจริงในระบบ Swordman
+        player.Heal(healAmount);
+
+        // ส่ง Analytics ตอนเก็บเลือด
         if (AnalyticsManager.Instance != null)
         {
             AnalyticsManager.Instance.SendCollectPotion(1);
@@ -22,7 +35,7 @@ public class HealItem : MonoBehaviour
             Debug.LogWarning("❌ ไม่เจอ AnalyticsManager");
         }
 
-        Debug.Log("Get potion");
+        Debug.Log("Get potion + Heal +" + healAmount);
 
         Destroy(gameObject);
     }

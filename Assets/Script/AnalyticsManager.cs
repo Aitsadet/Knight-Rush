@@ -19,7 +19,7 @@ public class AnalyticsManager : MonoBehaviour
 
             await UnityServices.InitializeAsync();
 
-            // ของเดิม ใช้ต่อได้ แค่เป็น Warning ไม่ใช่ Error
+            // ใช้แบบเดิมได้ ถึงจะมี Warning สีเหลือง แต่ไม่ใช่ Error
             AnalyticsService.Instance.StartDataCollection();
 
             isInitialized = true;
@@ -34,8 +34,8 @@ public class AnalyticsManager : MonoBehaviour
         }
     }
 
-    // ส่ง Event game_start พร้อม amount = 1
-    public void SendGameStart(int amount)
+    // ส่ง Event game_start พร้อม Parameter level
+    public void SendGameStart(string level)
     {
         if (!isInitialized)
         {
@@ -45,7 +45,7 @@ public class AnalyticsManager : MonoBehaviour
 
         CustomEvent gameStartEvent = new CustomEvent("game_start")
         {
-            { "amount", amount }
+            { "level", level }
         };
 
         AnalyticsService.Instance.RecordEvent(gameStartEvent);
@@ -53,10 +53,10 @@ public class AnalyticsManager : MonoBehaviour
 
         eventCount++;
 
-        Debug.Log("🎮 Sent game_start amount = " + amount);
+        Debug.Log("🎮 Sent game_start level = " + level);
     }
 
-    // ส่ง Event collect_potion พร้อม amount = 1
+    // ส่ง Event collect_potion พร้อม Parameter amount = 1
     public void SendCollectPotion(int amount)
     {
         if (!isInitialized)
